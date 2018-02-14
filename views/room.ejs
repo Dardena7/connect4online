@@ -29,12 +29,9 @@
 <body>
 	<div class='container'>
 		<header>
-			<h1>Bienvenue sur Connect 4 Online !</h1>
+			<h1>Bienvenue dans le salon 1 !</h1>
 		</header>
-		<div id='btnContainer'>
-			<button onclick='joinRoom("room1")' class='btn btn-primary'>Salon 1</button>
-		</div>
-		<button onclick='helloRoom()' class='btn btn-primary''>Hello Room !</button>	
+		<button onclick='quitRoom()' class='btn btn-primary'>Quitter</button>	
 	</div>
 
 	<!-- Optional JavaScript -->
@@ -45,7 +42,7 @@
 
 	<script src='/socket.io/socket.io.js'></script>
 	<script>
-		var socket = io();
+		var socket = io('/room1');
 
 		socket.on('hi', function(msg){
 			console.log(msg);
@@ -55,40 +52,8 @@
 			window.location.href = destination;
 		});
 
-		socket.on('joinRoom', function(room) {
-			socket.emit('joinRoom', room);
-		});
-
-		socket.on('leaveRoom', function(room) {
-			socket.emit('leaveRoom', room);
-		});
-
-
-		socket.on('announcement', function(msg) {
-			console.log(msg);
-		});
-
-		socket.on('changeButton', function(data) {
-			if(data.type == "join")
-				var button = "<button onclick='joinRoom(\""+data.room+"\")' class='btn btn-primary'>Rejoindre "+data.room+"</button>";
-			else
-				var button = "<button onclick='leaveRoom(\""+data.room+"\")' class='btn btn-primary'>Quitter "+data.room+"</button>";
-			$('#btnContainer').html(button);
-		});
-
-		function joinRoom(room) {
-			console.log('join '+room);
-			socket.emit('tellToJoinRoom', room);
-		}
-
-		function leaveRoom(room) {
-			console.log('leave '+room);
-			socket.emit('tellToLeaveRoom', room);
-		}
-
-		function helloRoom() {
-			console.log('hello');
-			socket.emit('helloRoom');
+		function quitRoom() {
+			socket.emit('quitRoom');
 		}
 	</script>
 
