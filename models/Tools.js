@@ -1,10 +1,13 @@
 module.exports = class Tools {
-	constructor(){}
+	constructor(){
+		this.usedKeys = [];
+	}
 
-	makeId(usersList) {
+	makeId() {
 		var id = this.generateKey();
-		while(this.sameId(id, usersList))
+		while(this.sameId(id))
 			id = this.generateKey();
+		this.usedKeys.push(id);
 		return id;
 	}
 
@@ -18,9 +21,9 @@ module.exports = class Tools {
 		return text;
 	}
 
-	sameId(id, usersList) {
-		for(var i = 0; i < usersList.length; ++i)
-			if(usersList[i].id == id)
+	sameId(id) {
+		for(var i = 0; i < this.usedKeys.length; ++i)
+			if(this.usedKeys[i].id == id)
 				return true;
 		return false;
 	}

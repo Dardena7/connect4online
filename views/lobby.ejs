@@ -32,9 +32,8 @@
 			<h1>Bienvenue sur Connect 4 Online !</h1>
 		</header>
 		<div id='btnContainer'>
-			<button onclick='joinRoom("room1")' class='btn btn-primary'>Salon 1</button>
 		</div>
-		<button onclick='helloRoom()' class='btn btn-primary''>Hello Room !</button>	
+		<button onclick='helloRoom()' class='btn btn-primary''>Hello gameRoom !</button>	
 	</div>
 
 	<!-- Optional JavaScript -->
@@ -55,12 +54,12 @@
 			window.location.href = destination;
 		});
 
-		socket.on('joinRoom', function(room) {
-			socket.emit('joinRoom', room);
+		socket.on('joinRoom', function(gameRoom) {
+			socket.emit('joinRoom', gameRoom);
 		});
 
-		socket.on('leaveRoom', function(room) {
-			socket.emit('leaveRoom', room);
+		socket.on('leaveRoom', function(gameRoom) {
+			socket.emit('leaveRoom', gameRoom);
 		});
 
 
@@ -70,20 +69,20 @@
 
 		socket.on('changeButton', function(data) {
 			if(data.type == "join")
-				var button = "<button onclick='joinRoom(\""+data.room+"\")' class='btn btn-primary'>Rejoindre "+data.room+"</button>";
+				var button = "<button onclick='joinRoom(\""+data.gameRoom+"\")' class='btn btn-primary'>Rejoindre "+data.name+"</button>";
 			else
-				var button = "<button onclick='leaveRoom(\""+data.room+"\")' class='btn btn-primary'>Quitter "+data.room+"</button>";
+				var button = "<button onclick='leaveRoom(\""+data.gameRoom+"\")' class='btn btn-primary'>Quitter "+data.name+"</button>";
 			$('#btnContainer').html(button);
 		});
 
-		function joinRoom(room) {
-			console.log('join '+room);
-			socket.emit('tellToJoinRoom', room);
+		function joinRoom(gameRoom) {
+			console.log('join '+gameRoom);
+			socket.emit('tellToJoinRoom', gameRoom);
 		}
 
-		function leaveRoom(room) {
-			console.log('leave '+room);
-			socket.emit('tellToLeaveRoom', room);
+		function leaveRoom(gameRoom) {
+			console.log('leave '+gameRoom);
+			socket.emit('tellToLeaveRoom', gameRoom);
 		}
 
 		function helloRoom() {

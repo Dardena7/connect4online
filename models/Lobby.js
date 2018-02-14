@@ -3,7 +3,7 @@ module.exports = class Lobby {
 		this.usersList = []; 
 	}
 
-	getUser(sessionid) {
+	getUserById(sessionid) {
 		for(var i = 0; i < this.usersList.length; ++i)
 			if(this.usersList[i].sessionid == sessionid)
 				return this.usersList[i];
