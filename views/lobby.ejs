@@ -27,13 +27,8 @@
 	</style>
 </head>
 <body>
-	<div class='container'>
-		<header>
-			<h1>Bienvenue sur Connect 4 Online !</h1>
-		</header>
-		<div id='btnContainer'>
-		</div>
-		<button onclick='helloRoom()' class='btn btn-primary''>Hello gameRoom !</button>	
+	<div id='view' class='container'>
+		<!-- refresh_view() -->
 	</div>
 
 	<!-- Optional JavaScript -->
@@ -44,15 +39,17 @@
 
 	<script src='/socket.io/socket.io.js'></script>
 	<script>
+
+		var view_position = 'lobby';
+
+		var lobby_view = {
+			nb_players : 0,
+			rooms_list : []
+		}
+
+		var room_view = "none";
+
 		var socket = io();
-
-		socket.on('hi', function(msg){
-			console.log(msg);
-		});
-
-		socket.on('joinDestination', function(destination){
-			window.location.href = destination;
-		});
 
 		socket.on('joinRoom', function(gameRoom) {
 			socket.emit('joinRoom', gameRoom);
@@ -62,33 +59,129 @@
 			socket.emit('leaveRoom', gameRoom);
 		});
 
-
-		socket.on('announcement', function(msg) {
-			console.log(msg);
+		socket.on('initializeView', function(data) {
+			view_position = data.position;
+			lobby_view.nb_players = data.nbPlayers;
+			lobby_view.rooms_list = data.roomsList;
+			room_view = data.room;
+			refresh_view();
 		});
 
-		socket.on('changeButton', function(data) {
-			if(data.type == "join")
-				var button = "<button onclick='joinRoom(\""+data.gameRoom+"\")' class='btn btn-primary'>Rejoindre "+data.name+"</button>";
-			else
-				var button = "<button onclick='leaveRoom(\""+data.gameRoom+"\")' class='btn btn-primary'>Quitter "+data.name+"</button>";
-			$('#btnContainer').html(button);
+		socket.on('updateNbPlayers', function(nb) {
+			lobby_view.nb_players = nb;
+			if(view_position == 'lobby')
+				refresh_nb_players_view();
 		});
+
+		socket.on('updateLobbyRooms', function(roomsList) {
+			lobby_view.rooms_list = roomsList;
+			if(view_position == 'lobby')
+				refresh_rooms_list_view();
+		});
+
+		socket.on('updateRoom', function(data) {
+			var type = data.type;
+			var room = data.room;
+			if(type == 'join')
+				view_position = 'room';
+			else if(type == 'leave')
+				view_position = 'lobby';
+			else if(type == 'game')
+				view_position = 'game';
+			room_view = room;
+			refresh_view();
+		});
+
+		socket.on('playerLeft', function(){
+			view_position = 'left';
+			refresh_view();
+			setTimeout(function(){
+				leaveRoom(room_view.roomName);
+			}, 3000);
+		});
+
+		function createRoom() {
+			socket.emit('createRoom');
+		}
 
 		function joinRoom(gameRoom) {
-			console.log('join '+gameRoom);
 			socket.emit('tellToJoinRoom', gameRoom);
 		}
 
 		function leaveRoom(gameRoom) {
-			console.log('leave '+gameRoom);
 			socket.emit('tellToLeaveRoom', gameRoom);
 		}
 
-		function helloRoom() {
-			console.log('hello');
-			socket.emit('helloRoom');
+		function refresh_view() {
+			var view;
+			if(view_position == 'lobby')
+				view = get_lobby_view();
+			else if(view_position == 'room')
+				view = get_room_view();
+			else if(view_position == 'game')
+				view = get_game_view();
+			else if(view_position == 'left')
+				view = get_left_view();
+			$('#view').html(view);
 		}
+
+		function refresh_rooms_list_view() {
+			$('#rooms_list').html(get_rooms_list_view());
+		}
+
+		function refresh_nb_players_view() {
+			$('#nb_players').text(lobby_view.nb_players);
+		}
+
+		function get_lobby_view() {
+			var view = "";
+			view += "<h1>Bienvenue sur Connect4Online</h1>";
+			view += "<p>Il y a <span id='nb_players'>"+lobby_view.nb_players+"</span> joueurs connectés.</p>";
+			view += "<button onclick='createRoom()' class='btn btn-primary'>Créer salon</button>";
+			view += "<div id='rooms_list'>";
+			view += get_rooms_list_view();
+			view += "</div>";
+			return view;
+		}
+
+		function get_room_view() {
+			var view = "";
+			view += "<h1>Vous êtes dans le salon n°"+room_view.id+"</h1>";
+			view += "<p>Nombre de joueurs dans le salon : "+room_view.players.length+"/2</p>";
+			if(room_view.ready)
+				view += "<p>Le jeu va bientôt démarrer</p>";
+			else
+				view += "<button onclick='leaveRoom(\""+room_view.roomName+"\")' class='btn btn-danger'>Quitter</button>";
+			return view;
+		}
+
+		function get_rooms_list_view() {
+			var view = '';
+			for(var i = 0; i < lobby_view.rooms_list.length; ++i){
+				view += "<div style:'display : inline-block'>";
+				view += "<p>Salon n°"+i+"</p>";
+				if(lobby_view.rooms_list[i].isFull)
+					view += "<p>Salon complet</p>";
+				else
+					view += "<button onclick='joinRoom(\""+lobby_view.rooms_list[i].roomName+"\")' class='btn btn-success'>Rejoindre</button>";
+				view += "</div>";
+			}
+			return view;
+		}
+
+		function get_left_view() {
+			var view = '';
+			view += "<h1>Bienvenue dans le jeu</h1>";
+			view += "<p>Votre adversaire a quitté la partie ! Vous allez être redirigé vers l'accueil dans quelques instants</p>";
+			return view;
+		}
+
+		function get_game_view() {
+			var view = "";
+			view += "<h1>Bienvenue dans le jeu</h1>";
+			return view;
+		}
+
 	</script>
 
 </body>
