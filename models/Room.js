@@ -1,4 +1,4 @@
-var Game = require('./Game');
+var Game = require('./Game/Game');
 module.exports = class Room {
 	constructor(roomid, user) {
 		this.id = roomid;
@@ -47,5 +47,9 @@ module.exports = class Room {
 	setNotReady() {
 		if(this.players.length < 2)
 			this.ready = false;
+	}
+
+	getTurnUser() {
+		return this.players[this.game.player - 1];
 	}
 }

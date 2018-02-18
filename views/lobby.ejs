@@ -24,6 +24,44 @@
 		h1 {
 			background-color: coral;
 		}
+
+		table {
+			width: 100%;
+			table-layout: fixed;
+			background-color: blue;
+		}
+
+		td {
+			width: calc(100%/7); /* 14.28 */
+		}
+
+		.cell, .yellow, .red {
+			margin: 5% auto;
+			width: 70%;
+			padding-top: 70%;
+			border-radius: 100%;
+		}
+
+		.playable:hover {
+			cursor: pointer;
+		}
+
+		.light {
+			background-color: lightblue;
+		}
+
+		.cell {
+			background-color: white;
+		}
+
+		.yellow {
+			background-color: yellow;
+		}
+
+		.red {
+			background-color: red;
+		}
+
 	</style>
 </head>
 <body>
@@ -48,6 +86,8 @@
 		}
 
 		var room_view = "none";
+		var turnStatus = "playTurn";
+		var gameStatus = "run";
 
 		var socket = io();
 
@@ -65,6 +105,10 @@
 			lobby_view.rooms_list = data.roomsList;
 			room_view = data.room;
 			refresh_view();
+		});
+
+		socket.on('updateTurnStatus', function(status) {
+			turnStatus = status;
 		});
 
 		socket.on('updateNbPlayers', function(nb) {
@@ -89,6 +133,37 @@
 			else if(type == 'game')
 				view_position = 'game';
 			room_view = room;
+			refresh_view();
+		});
+
+		socket.on('forbidden', function(msg) {
+			alert(msg);
+		});
+
+		socket.on('updateGame', function(game) {
+			console.log(1, game);
+			room_view.game = game;
+			refresh_view();
+		});
+
+		socket.on('loose', function(game) {
+			turnStatus = "none";
+			gameStatus = "loose";
+			room_view.game = game;
+			refresh_view();
+		});
+
+		socket.on('win', function(game) {
+			turnStatus = "none";
+			gameStatus = "win";
+			room_view.game = game;
+			refresh_view();
+		});
+
+		socket.on('draw', function(game) {
+			turnStatus = "none";
+			gameStatus = "draw";
+			room_view.game = game;
 			refresh_view();
 		});
 
@@ -123,6 +198,7 @@
 			else if(view_position == 'left')
 				view = get_left_view();
 			$('#view').html(view);
+			setEvent();
 		}
 
 		function refresh_rooms_list_view() {
@@ -179,8 +255,84 @@
 		function get_game_view() {
 			var view = "";
 			view += "<h1>Bienvenue dans le jeu</h1>";
+			view += getStatusMessage();
+			view += "<div class='row game-container'>";
+			view += "<div class='col-0 col-md-1 col-lg-2'>";
+			view += "</div>";
+			view += "<div class='col-12 col-md-10 col-lg-8'>";
+			view += get_board_view();
+			view += "</div>";
+
+			//view += "<button onclick='blabla()'>Reee</button>";
+
+			view += "</div>";
 			return view;
 		}
+
+		function get_board_view() {
+			var board = room_view.game.board;
+			var view = "<table>";
+			for(var y = 0; y < board[0].length; ++y){
+				view += "<tr>";
+				for(var x = 0; x < board.length; ++x){
+					if(turnStatus == 'playTurn' && rowPlayable(x))
+						view += "<td onclick='playRow("+x+")' class='playable row"+x+"' data-row='"+x+"' data-col='"+y+"'>";
+					else
+						view += "<td data-coord='{row: "+x+",col: "+y+"}'>";
+					if(board[x][y] == 0)
+						view += "<div class='cell'></div>";
+					else if(board[x][y] == 1)
+						view += "<div class='yellow'></div>";
+					else if(board[x][y] == 2)
+						view += "<div class='red'></div>";
+					view += "</td>";
+				}
+				view += "</tr>";
+			}
+			view += "</table>"
+			return view;
+		}
+
+		function rowPlayable(row) {
+			var board = room_view.game.board;
+			for(var col = 0; col < board[row].length; ++col)
+				if(board[row][col] == 0)
+					return true;
+			return false;
+		}
+
+		function playRow(x) {
+			socket.emit('playRow', parseInt(x));
+		}
+
+		function setEvent() {
+			$('.playable').mouseover(function(){
+				var row = $(this).data('row');
+				$('td').removeClass('light');
+				$('.row'+row).addClass('light');
+				$('.playable').mouseout(function(){
+					$('td').removeClass('light');
+				});
+			});
+		}
+
+		function getStatusMessage() {
+			if(gameStatus != "run"){
+				if(gameStatus == "win")
+					return "<p class='win'>Vous avez gagné !!!</p>";
+				else if(gameStatus == "loose")
+					return "<p class='loose'>Vous avez perdu !!!</p>";
+				else if(gameStatus == "draw")
+					return "<p class='loose'>Il n'y a pas de vainqueur !!!</p>";
+			}
+			else {
+				if(turnStatus == "playTurn")
+					return "<p class='win'>C'est à votre tour de jouer.</p>";
+				else
+					return "<p class='win'>C'est au tou de votre adversaire de jouer.</p>";
+			}
+		}
+		
 
 	</script>
 
