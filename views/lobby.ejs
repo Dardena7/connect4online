@@ -16,30 +16,74 @@
 
 		body {
 			font-size: 14px;
-			padding: 1em;
-			background-color: #444;
+			background-color: white;
 			color: white;
 		}
 
+		h1, h2, h3 {
+			font-weight: bold;
+		}
+
 		h1 {
-			background-color: coral;
+			margin-bottom: 30px;
+			margin-top: 0px;
+			font-size: 30px;
+		}
+
+		h2 {
+			font-size: 25px;
+		}
+
+		h3 {
+			font-size: 20px;
+		}
+
+		h1, h3 {
+			text-align: center;
+		}
+
+		header {
+			margin: 0px -15px;
+			margin-bottom: 30px;
+		}
+
+		p {
+			font-weight: bold;
+		}
+
+		.rooms {
+			display: inline-block;
+		}
+
+		h2 {
+			margin-top: 30px;
+			margin-bottom: 20px;
+		}
+
+		.btn-container {
+			margin-top: 10px;
 		}
 
 		table {
 			width: 100%;
 			table-layout: fixed;
-			background-color: blue;
+			background-color: rgb(40,90,170);
+			border: 2px solid lightgrey;
 		}
 
 		td {
 			width: calc(100%/7); /* 14.28 */
 		}
 
+
+
 		.cell, .yellow, .red {
+			box-sizing: border-box;
 			margin: 5% auto;
-			width: 70%;
+			width: 75%;
 			padding-top: 70%;
 			border-radius: 100%;
+			border: 3px solid lightgrey;
 		}
 
 		.playable:hover {
@@ -47,7 +91,7 @@
 		}
 
 		.light {
-			background-color: lightblue;
+			background-color: orange;
 		}
 
 		.cell {
@@ -62,10 +106,39 @@
 			background-color: red;
 		}
 
+		.grey {
+			background-color: #444;
+			padding-bottom: 50px;
+		}
+
+		.center {
+			text-align: center;
+		}
+
+		.win, .loose, .draw, .infos {
+			font-size: 16px;
+		}
+
+		.win {
+			color: green;
+		}
+
+		.loose {
+			color: red;
+		}
+
+		.draw {
+			color: orange;
+		}
+
 	</style>
 </head>
 <body>
-	<div id='view' class='container'>
+	<div class='container grey'>
+		<header><img src='connect4header.png' class='img-fluid'></header>
+		<div id='view'>
+			
+		</div>
 		<!-- refresh_view() -->
 	</div>
 
@@ -184,6 +257,8 @@
 		}
 
 		function leaveRoom(gameRoom) {
+			turnStatus = "playTurn";
+			gameStatus = "run";
 			socket.emit('tellToLeaveRoom', gameRoom);
 		}
 
@@ -214,8 +289,11 @@
 			view += "<h1>Bienvenue sur Connect4Online</h1>";
 			view += "<p>Il y a <span id='nb_players'>"+lobby_view.nb_players+"</span> joueurs connectés.</p>";
 			view += "<button onclick='createRoom()' class='btn btn-primary'>Créer salon</button>";
-			view += "<div id='rooms_list'>";
+			view += "<div>";
+			view += "<h2>Liste des salons de jeux</h2>";
+			view += "<div  id='rooms_list' class='row'>";
 			view += get_rooms_list_view();
+			view += "</div>";
 			view += "</div>";
 			return view;
 		}
@@ -234,12 +312,16 @@
 		function get_rooms_list_view() {
 			var view = '';
 			for(var i = 0; i < lobby_view.rooms_list.length; ++i){
-				view += "<div style:'display : inline-block'>";
-				view += "<p>Salon n°"+i+"</p>";
-				if(lobby_view.rooms_list[i].isFull)
-					view += "<p>Salon complet</p>";
-				else
+				view += "<div class='col-6 col-sm-3 rooms'>";
+				view += "<h3>Salon n°"+(i+1)+"</h3>";
+				view += "<img class='img-thumbnail' src='connect4.jpg'>";
+				if(lobby_view.rooms_list[i].isFull || lobby_view.rooms_list[i].game != 'none')
+					view += "<p class='center'>Salon complet</p>";
+				else{
+					view += "<div class='center btn-container'>";
 					view += "<button onclick='joinRoom(\""+lobby_view.rooms_list[i].roomName+"\")' class='btn btn-success'>Rejoindre</button>";
+					view += "</div>";
+				}
 				view += "</div>";
 			}
 			return view;
@@ -248,7 +330,7 @@
 		function get_left_view() {
 			var view = '';
 			view += "<h1>Bienvenue dans le jeu</h1>";
-			view += "<p>Votre adversaire a quitté la partie ! Vous allez être redirigé vers l'accueil dans quelques instants</p>";
+			view += "<p class='loose center'>Votre adversaire a quitté la partie ! Vous allez être redirigé vers l'accueil dans quelques instants</p>";
 			return view;
 		}
 
@@ -262,9 +344,6 @@
 			view += "<div class='col-12 col-md-10 col-lg-8'>";
 			view += get_board_view();
 			view += "</div>";
-
-			//view += "<button onclick='blabla()'>Reee</button>";
-
 			view += "</div>";
 			return view;
 		}
@@ -318,18 +397,23 @@
 
 		function getStatusMessage() {
 			if(gameStatus != "run"){
+				var msg = "";
 				if(gameStatus == "win")
-					return "<p class='win'>Vous avez gagné !!!</p>";
+					msg += "<p class='win center'>Vous avez gagné !!!</p>";
 				else if(gameStatus == "loose")
-					return "<p class='loose'>Vous avez perdu !!!</p>";
+					msg += "<p class='loose center'>Vous avez perdu !!!</p>";
 				else if(gameStatus == "draw")
-					return "<p class='loose'>Il n'y a pas de vainqueur !!!</p>";
+					msg += "<p class='draw center'>Il n'y a pas de vainqueur !!!</p>";
+				msg+= "<div class='center btn-container'>";
+				msg += "<button onclick='leaveRoom(\""+room_view.roomName+"\")' class='btn btn-danger'>Quitter</button>";
+				msg += "<div class='center btn-container'>";
+				return msg;
 			}
 			else {
 				if(turnStatus == "playTurn")
-					return "<p class='win'>C'est à votre tour de jouer.</p>";
+					return "<p class='infos center'>C'est à votre tour de jouer.</p>";
 				else
-					return "<p class='win'>C'est au tou de votre adversaire de jouer.</p>";
+					return "<p class='infos center'>C'est au tour de votre adversaire de jouer.</p>";
 			}
 		}
 		

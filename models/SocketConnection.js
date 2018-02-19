@@ -161,27 +161,24 @@ module.exports = class SocketConnection {
 		if(gameRoom != 'none' && this.user.socketIds.length == 0){
 			var room = this.lobby.getRoom(gameRoom);
 			this.deleteUserFromRoom(gameRoom);
-			if(room.game == 'none'){
+			if(room.game == 'none')
 				this.socket.to(gameRoom).emit('updateRoom', {type: "update", room: room});
-				this.updateLobbyRooms();
-			}
 			else 
-				this.socket.to(gameRoom).emit('playerLeft');
+				if(room.game.status == 'run')
+					this.socket.to(gameRoom).emit('playerLeft');
+			this.updateLobbyRooms();
 		}
 	}
 
 	playTurn(row) {
 		var game = this.lobby.getRoom(this.user.gameRoom).game;
 		if(game.playTurn(row)){
-			console.log(game.status);
 			if(game.status == 'run'){
 				this.socket.to(this.user.gameRoom).emit('updateTurnStatus', this.getOpponentTurnStatus());
 				this.socket.emit('updateTurnStatus', this.getTurnStatus());
 				this.socket.to(this.sessionRoom).emit('updateTurnStatus', this.getTurnStatus());
-				console.log(1);
 				this.socket.to(this.user.gameRoom).emit('updateGame', game);
 				this.socket.emit('updateGame', game);
-				console.log(2);
 			}
 			else if(game.status == 'win'){
 				this.socket.to(this.user.gameRoom).emit('loose', game);
@@ -189,7 +186,6 @@ module.exports = class SocketConnection {
 				this.socket.emit('win', game);
 			}
 			else if(game.status == 'draw'){
-				console.log(3);
 				this.socket.to(this.user.gameRoom).emit('draw', game);
 				this.socket.emit('draw', game);
 			}
@@ -218,148 +214,3 @@ module.exports = class SocketConnection {
 	}
 
 }
-
-/*module.exports = class SocketConnection {
-	constructor(socket) {
-		var self = this;
-		this.socket = socket;
-		this.lobby = socket.lobby;
-		this.user = socket.user;
-		this.socketId = socket.id;
-		this.sessionRoom = 'sessionRoom'+this.user.sessionid;
-
-		this.user.addSocketId(socket.id);
-		this.joinSessionRoom();
-		this.joinGameRoom();
-		this.updateNbPlayers();
-		this.initializeView();
-
-
-		this.socket.on('disconnect', function(){
-			self.user.deleteSocketId(self.socketId);
-			if(self.user.socketIds.length == 0)
-				self.lobby.usersList.splice(self.lobby.usersList.indexOf(self.user), 1);
-			self.leaveRoomOnDisconnect();
-			self.updateNbPlayers();
-		});
-
-		this.socket.on('createRoom', function() {
-			if(self.user.gameRoom == "none") 
-				self.createRoom();
-			self.updateLobbyRooms();
-			self.updateRoom('join', self.user.gameRoom);
-		});
-
-		this.socket.on('tellToJoinRoom', function(gameRoom){
-			self.lobby.addUserToRoom(gameRoom, self.user);
-			self.joinRoom(gameRoom);
-			self.updateLobbyRooms();
-			self.updateRoom('join', gameRoom);
-			self.launchGame(gameRoom);
-		});
-
-		this.socket.on('joinRoom', function(gameRoom){
-			this.join(gameRoom);
-			self.updateRoom('join', gameRoom);
-		});
-
-		this.socket.on('tellToLeaveRoom', function(gameRoom){
-			self.leaveRoom(gameRoom);
-			self.updateLobbyRooms();
-			self.updateRoom('leave', 'none');
-		});
-
-		this.socket.on('leaveRoom', function(gameRoom){
-			this.leave(gameRoom);
-			self.updateRoom('leave', 'none');
-		});
-
-	}
-
-	launchGame(gameRoom) {
-		var room = this.lobby.getRoom(gameRoom);
-		var socket = this.socket;
-		setTimeout(function(){
-			room.launchGame();
-			if(room.game != 'none'){
-				socket.emit('updateRoom', {type: 'game', room: room});
-				socket.to(gameRoom).emit('updateRoom', {type: 'game', room: room});
-			}
-		}, 3000);
-	}
-
-	createRoom() {
-		var roomid = Date.now();
-		this.lobby.createRoom(roomid, this.user);
-		this.joinRoom("room"+roomid);
-	}
-
-	joinRoom(gameRoom) {
-		var room = this.lobby.getRoom(gameRoom); 
-		this.user.gameRoom = gameRoom;
-		this.socket.to(this.sessionRoom).emit('joinRoom', gameRoom);
-		this.socket.join(this.user.gameRoom);
-		this.socket.to(gameRoom).emit('updateRoom', {type: "update", room: room});
-	}
-
-	leaveRoom(gameRoom) {
-		var room = this.lobby.getRoom(gameRoom);
-		this.deleteFromRoom(room);
-		this.socket.to(gameRoom).emit('updateRoom', {type: "update", room: room});
-		this.socket.to(this.sessionRoom).emit('leaveRoom', gameRoom);
-		this.socket.leave(gameRoom);
-		this.user.gameRoom = "none";
-	}
-
-	leaveRoomOnDisconnect() {
-		if(this.user.gameRoom != 'none' && this.user.socketIds.length == 0){
-			var room = this.lobby.getRoom(this.user.gameRoom);
-			this.deleteFromRoom(room);
-			this.socket.to(this.user.gameRoom).emit('updateRoom', {type: "update", room: room});
-			this.updateLobbyRooms();
-		}
-	}
-
-	deleteFromRoom(room) {
-		room.deletePlayer(this.user);
-		if(room.isEmpty())
-			this.lobby.deleteRoom(room);
-	}
-
-	initializeView() {
-		var data = {position: "lobby", nbPlayers: 0, roomsList: [], room: "none"};
-		data.nbPlayers = this.lobby.usersList.length;
-		data.roomsList = this.lobby.roomsList;
-		if(this.user.gameRoom != "none" ){
-			data.position = "room";
-			data.room = this.lobby.getRoom(this.user.gameRoom);
-		}
-		this.socket.emit('initializeView', data);
-	}
-
-	updateNbPlayers() {
-		this.socket.broadcast.emit('updateNbPlayers', this.lobby.usersList.length);
-		this.socket.emit('updateNbPlayers', this.lobby.usersList.length);
-	}
-
-	updateLobbyRooms() {
-		this.socket.broadcast.emit('updateLobbyRooms', this.lobby.roomsList);
-		this.socket.emit('updateLobbyRooms', this.lobby.roomsList);
-	}
-
-	updateRoom(type, gameRoom) {
-		if(gameRoom != 'none')
-			gameRoom = this.lobby.getRoom(gameRoom);
-		this.socket.emit('updateRoom', {type: type, room: gameRoom});
-	}
-
-	joinSessionRoom() {
-		this.socket.join(this.sessionRoom);
-	}
-
-	joinGameRoom() {
-		if(this.user.gameRoom != "none") {
-			this.socket.join(this.user.gameRoom);
-		}
-	}
-}*/

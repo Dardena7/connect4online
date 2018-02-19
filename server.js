@@ -1,5 +1,6 @@
 //IMPORTS
-var app = require('express')(),
+var express = require('express')
+	app = express(),
 	http = require('http').Server(app),
 	io = require('socket.io')(http),
 	favicon = require('serve-favicon'),
@@ -26,6 +27,7 @@ app.use(session)
 	next();
 })
 .use(favicon(__dirname + '/public/favicon.ico'))
+.use(express.static('public'))
 
 
 //ROUTES
